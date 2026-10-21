@@ -1,0 +1,72 @@
+{
+  "measured_at": "2026-10-21T08:05:48+00:00",
+  "split": "dev",
+  "answerable_items": 0,
+  "environment": {
+    "cpu": "Intel64 Family 6 Model 94 Stepping 3, GenuineIntel",
+    "logical_cpus": 4,
+    "torch_threads": 4,
+    "ram_gb": 15.9,
+    "python": "3.14.5",
+    "torch": "2.14.1+cpu",
+    "sentence_transformers": "6.1.0"
+  },
+  "corpus": {
+    "manifest": "k8s-docs-v1.yaml",
+    "documents": 601,
+    "chunks": 3059,
+    "chunk_chars": 2000,
+    "overlap_chars": 300
+  },
+  "embeddings": [
+    {
+      "model": "intfloat/multilingual-e5-small",
+      "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+      "dimension": 384,
+      "load_seconds": 44.17,
+      "rss_model_mb": 801.3,
+      "rss_peak_mb": 1288.6,
+      "chunks_encoded": 128,
+      "encode_seconds": 34.98,
+      "passages_per_second": 3.66,
+      "query_latency_ms": {
+        "p50": NaN,
+        "p95": NaN,
+        "n": 0
+      }
+    },
+    {
+      "model": "intfloat/multilingual-e5-base",
+      "revision": "d128750597153bb5987e10b1c3493a34e5a4502a",
+      "dimension": 768,
+      "load_seconds": 98.58,
+      "rss_model_mb": 630.5,
+      "rss_peak_mb": 2133.7,
+      "chunks_encoded": 128,
+      "encode_seconds": 102.56,
+      "passages_per_second": 1.25,
+      "query_latency_ms": {
+        "p50": NaN,
+        "p95": NaN,
+        "n": 0
+      }
+    },
+    {
+      "model": "BAAI/bge-m3",
+      "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+      "dimension": 1024,
+      "load_seconds": 205.51,
+      "rss_model_mb": -318.4,
+      "rss_peak_mb": 1913.8,
+      "chunks_encoded": 128,
+      "encode_seconds": 287.16,
+      "passages_per_second": 0.45,
+      "query_latency_ms": {
+        "p50": NaN,
+        "p95": NaN,
+        "n": 0
+      }
+    }
+  ],
+  "rerankers": []
+}

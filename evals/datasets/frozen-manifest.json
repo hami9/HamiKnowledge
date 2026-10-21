@@ -1,0 +1,13 @@
+{
+  "frozen_at": "2026-10-21",
+  "corpus_lock_sha256": "a559fd60d638aad0b9211fd4f5f4abc4417566d29453ab28dcc6f581274410ef",
+  "rubric_sha256": "ad7d24f45f523223a079ce4883b009ea19228e73e50a47d0da93feaff30ed0c7",
+  "files": {
+    "test.jsonl": "422ed22c89db619cf41fe69af63f0e630cd18e9a43217dd908018a0d68d1f0db",
+    "adversarial.jsonl": "ed916e8ec20d9bbb0a6277b0a47ee8beb4dd891f1162666b9ddc12c69f70be2a"
+  },
+  "counts": {
+    "test": 100,
+    "adversarial": 40
+  }
+}

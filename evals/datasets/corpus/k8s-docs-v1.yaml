@@ -1,0 +1,23 @@
+# Evaluation corpus definition. Source text is not committed; build it with
+# `python -m evals.corpus build evals/datasets/corpus/k8s-docs-v1.yaml`.
+corpus_id: k8s-docs-v1
+source:
+  name: Kubernetes documentation
+  repository: https://github.com/kubernetes/website.git
+  commit: 1ffcdb2a3c3a4a3ebfc23473929072262a1bfaea
+  license: CC-BY-4.0
+  license_url: https://creativecommons.org/licenses/by/4.0/
+  attribution: "Kubernetes documentation, (c) The Kubernetes Authors, licensed under CC BY 4.0."
+checkout_dir: .cache/k8s-website
+include:
+  - lang: en
+    paths:
+      - content/en/docs/concepts
+      - content/en/docs/tasks
+      - content/en/docs/tutorials
+      - content/en/docs/setup
+  - lang: fa
+    paths:
+      - content/fa/docs
+# Files shorter than this (bytes, including front matter) are section stubs.
+min_bytes: 300
