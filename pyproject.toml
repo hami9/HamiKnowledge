@@ -1,8 +1,12 @@
 [project]
 name = "hamiknowledge"
-version = "0.0.1"
+version = "0.1.0"
 description = "Multi-user RAG workspace with cited answers and measured cost"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "hami9" }]
 requires-python = ">=3.12"
+keywords = ["rag", "multilingual", "evaluation", "pgvector", "reranking"]
 dependencies = [
     "pydantic>=2.7",
     "pyyaml>=6.0",

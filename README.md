@@ -2,7 +2,7 @@
 
 Multi-user RAG workspace for English and Persian technical documents, with checkable citations and visible cost.
 
-Status: **R0 / A0 — evaluation baseline**. No application code yet.
+Status: **A0 — evaluation baseline passed.**
 
 ## Install
 
@@ -33,13 +33,19 @@ Run the CPU feasibility and model selection benchmark on the dev split:
 .\.venv\Scripts\python.exe -m evals.feasibility --embeddings all --rerank-with intfloat/multilingual-e5-small
 ```
 
-## Docs
+## Documentation
 
 - [Evaluation plan](docs/evaluation-plan.md)
 - [Evaluation rubric](docs/evaluation-rubric.md)
 - [Model selection](docs/model-selection.md)
-- [Roadmap](HamiKnowledge-Roadmap.md)
+- [Evidence record A0](docs/evidence/A0.md)
+- [Engineering roadmap](HamiKnowledge-Roadmap.md)
+- [Platform runtime (HamiCloud)](https://github.com/hami9/hamicloud)
 
 ## Attribution
 
 Evaluation corpus: Kubernetes documentation, (c) The Kubernetes Authors, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source text is not redistributed in this repository.
+
+## License
+
+MIT
