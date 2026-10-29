@@ -6,3 +6,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 evals/reports/raw/
+*.egg-info/
+dist/
+build/

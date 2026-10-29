@@ -3,14 +3,28 @@ name = "hamiknowledge"
 version = "0.1.0"
 description = "Multi-user RAG workspace with cited answers and measured cost"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "hami9" }]
 requires-python = ">=3.12"
 keywords = ["rag", "multilingual", "evaluation", "pgvector", "reranking"]
 dependencies = [
-    "pydantic>=2.7",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
     "pyyaml>=6.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "sqlalchemy>=2.0.36",
+    "httpx>=0.28.0",
+    "python-multipart>=0.0.12",
 ]
+
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["evals*", "ingestion*", "retrieval*", "apps*"]
+exclude = ["tests*", "docs*", "config*"]
 
 [project.optional-dependencies]
 models = [
@@ -35,6 +49,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 strict = true
 python_version = "3.12"
 ignore_missing_imports = true
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
