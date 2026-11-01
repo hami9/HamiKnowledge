@@ -19,6 +19,7 @@ from apps.api.deps import get_ingestion_service, get_store
 from apps.api.schemas import (
     ChunkResponse,
     DocumentDetailResponse,
+    DocumentExcerptResponse,
     DocumentResponse,
 )
 from db.memory_store import MemoryStore
@@ -141,6 +142,40 @@ def get_document(
     return DocumentDetailResponse(
         document=_to_doc_response(doc),
         chunks=chunk_responses,
+    )
+
+
+@router.get("/{document_id}/excerpt", response_model=DocumentExcerptResponse)
+def get_document_excerpt(
+    workspace_id: UUID,
+    document_id: UUID,
+    start_char: int,
+    end_char: int,
+    store: StoreDep,
+) -> DocumentExcerptResponse:
+    """Retrieve raw source excerpt at exact character offsets with strict authorization."""
+    if not store.get_workspace(workspace_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace {workspace_id} not found",
+        )
+    excerpt = store.get_document_excerpt(
+        workspace_id=workspace_id,
+        document_id=document_id,
+        start_char=start_char,
+        end_char=end_char,
+    )
+    if excerpt is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document excerpt not found or access revoked",
+        )
+    return DocumentExcerptResponse(
+        document_id=document_id,
+        workspace_id=workspace_id,
+        start_char=start_char,
+        end_char=end_char,
+        excerpt=excerpt,
     )
 
 

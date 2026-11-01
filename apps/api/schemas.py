@@ -82,3 +82,47 @@ class SearchResponse(BaseModel):
     query: str
     count: int
     results: list[SearchResultItem]
+
+
+class DocumentExcerptResponse(BaseModel):
+    document_id: UUID
+    workspace_id: UUID
+    start_char: int
+    end_char: int
+    excerpt: str
+
+
+class CitationResponse(BaseModel):
+    chunk_id: str
+    document_id: UUID
+    start_char: int
+    end_char: int
+    heading_path: tuple[str, ...]
+    snippet: str
+
+
+class UsageResponse(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    estimated_cost_usd: float
+
+
+class QueryRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=1000)
+    variant: str = Field(default="B2", pattern=r"^B[0-3]$")
+    limit: int = Field(default=10, ge=1, le=50)
+    allowed_document_ids: list[UUID] | None = None
+
+
+class QueryResponse(BaseModel):
+    workspace_id: UUID
+    query: str
+    answer: str
+    abstained: bool
+    citations: list[CitationResponse]
+    supporting_passages: list[SearchResultItem]
+    retrieval_variant: str
+    usage: UsageResponse
+    latency_ms: float
+

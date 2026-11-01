@@ -15,6 +15,7 @@ from uuid import UUID, uuid4
 from db.memory_store import MemoryStore, global_store
 from db.models import Document, DocumentStatus, DocumentVersion
 from ingestion.chunker import HeadingAwareChunker
+from retrieval.embeddings import DeterministicEmbeddingAdapter, EmbeddingModel
 
 MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB limit per roadmap specification
 SUPPORTED_CONTENT_TYPES = {
@@ -44,9 +45,11 @@ class IngestionService:
         self,
         store: MemoryStore | None = None,
         chunker: HeadingAwareChunker | None = None,
+        embedder: EmbeddingModel | None = None,
     ) -> None:
         self.store = store or global_store
         self.chunker = chunker or HeadingAwareChunker()
+        self.embedder = embedder or DeterministicEmbeddingAdapter()
 
     def ingest_document(
         self,
@@ -129,10 +132,7 @@ class IngestionService:
             )
             self.store.save_version(version_record)
 
-            # 5. INDEXING / Chunking Stage
-            doc.status = DocumentStatus.INDEXING
-            self.store.save_document(doc)
-
+            # 5. Chunking
             chunks = self.chunker.chunk(
                 text=raw_text,
                 document_id=doc_id,
@@ -141,10 +141,26 @@ class IngestionService:
                 language=language,
             )
 
-            # Persist chunks with location metadata
-            self.store.save_chunks(workspace_id, doc_id, chunks)
+            # 6. EMBEDDING Stage
+            doc.status = DocumentStatus.EMBEDDING
+            self.store.save_document(doc)
 
-            # 6. READY Stage
+            passages = [c.search_text for c in chunks]
+            vectors = self.embedder.embed_passages(passages)
+            chunk_embeddings = {
+                chunk.chunk_id: vec
+                for chunk, vec in zip(chunks, vectors, strict=True)
+            }
+
+            # 7. INDEXING Stage
+            doc.status = DocumentStatus.INDEXING
+            self.store.save_document(doc)
+
+            # Persist chunks and dense embeddings with location metadata
+            self.store.save_chunks(workspace_id, doc_id, chunks)
+            self.store.save_embeddings(workspace_id, doc_id, chunk_embeddings)
+
+            # 8. READY Stage
             doc.status = DocumentStatus.READY
             doc.error_message = None
             self.store.save_document(doc)

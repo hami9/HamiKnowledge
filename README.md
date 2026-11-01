@@ -2,7 +2,7 @@
 
 Multi-user RAG workspace for English and Persian technical documents, with checkable citations and visible cost.
 
-Status: **A0 — evaluation baseline passed.**
+Status: **A2 — RAG MVP candidate passed.**
 
 ## Install
 
@@ -39,6 +39,8 @@ Run the CPU feasibility and model selection benchmark on the dev split:
 - [Evaluation rubric](docs/evaluation-rubric.md)
 - [Model selection](docs/model-selection.md)
 - [Evidence record A0](docs/evidence/A0.md)
+- [Evidence record A1](docs/evidence/A1.md)
+- [Evidence record A2](docs/evidence/A2.md)
 - [Engineering roadmap](HamiKnowledge-Roadmap.md)
 - [Platform runtime (HamiCloud)](https://github.com/hami9/hamicloud)
 

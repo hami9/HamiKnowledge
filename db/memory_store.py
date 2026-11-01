@@ -6,10 +6,13 @@ Enforces workspace isolation and document lifecycle transitions.
 from __future__ import annotations
 
 import datetime as dt
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from db.models import Document, DocumentStatus, DocumentVersion, Workspace
-from retrieval.protocols import Chunk
+
+if TYPE_CHECKING:
+    from retrieval.protocols import Chunk
 
 
 class MemoryStore:
@@ -25,6 +28,8 @@ class MemoryStore:
         self.versions: dict[tuple[UUID, UUID], list[DocumentVersion]] = {}
         # (workspace_id, document_id) -> list[Chunk]
         self.chunks: dict[tuple[UUID, UUID], list[Chunk]] = {}
+        # (workspace_id, chunk_id) -> list[float]
+        self.embeddings: dict[tuple[UUID, str], list[float]] = {}
 
     def create_workspace(self, workspace: Workspace) -> Workspace:
         self.workspaces[workspace.workspace_id] = workspace
@@ -72,6 +77,35 @@ class MemoryStore:
         self.versions.setdefault(key, []).append(version)
         return version
 
+    def get_document_version(
+        self,
+        workspace_id: UUID,
+        document_id: UUID,
+    ) -> DocumentVersion | None:
+        """Return the latest version for a document within the workspace."""
+        versions = self.versions.get((workspace_id, document_id), [])
+        if not versions:
+            return None
+        return versions[-1]
+
+    def get_document_excerpt(
+        self,
+        workspace_id: UUID,
+        document_id: UUID,
+        start_char: int,
+        end_char: int,
+    ) -> str | None:
+        """Return the raw text substring at exact character offsets with authorization checks."""
+        doc = self.get_document(workspace_id, document_id)
+        if not doc or doc.status in (DocumentStatus.DELETING, DocumentStatus.FAILED):
+            return None
+        version = self.get_document_version(workspace_id, document_id)
+        if not version:
+            return None
+        if start_char < 0 or end_char < start_char or end_char > len(version.raw_text):
+            return None
+        return version.raw_text[start_char:end_char]
+
     def save_chunks(
         self,
         workspace_id: UUID,
@@ -80,6 +114,36 @@ class MemoryStore:
     ) -> None:
         key = (workspace_id, document_id)
         self.chunks[key] = chunks
+
+    def save_embeddings(
+        self,
+        workspace_id: UUID,
+        document_id: UUID,
+        embeddings: dict[str, list[float]],
+    ) -> None:
+        """Persist chunk embeddings scoped to workspace."""
+        for chunk_id, vector in embeddings.items():
+            self.embeddings[(workspace_id, chunk_id)] = vector
+
+    def get_chunk_embedding(
+        self,
+        workspace_id: UUID,
+        chunk_id: str,
+    ) -> list[float] | None:
+        return self.embeddings.get((workspace_id, chunk_id))
+
+    def get_active_workspace_embeddings(
+        self,
+        workspace_id: UUID,
+    ) -> dict[str, list[float]]:
+        """Return active chunk embeddings for READY documents in the workspace."""
+        active_chunks = self.get_active_workspace_chunks(workspace_id)
+        active_ids = {c.chunk_id for c in active_chunks}
+        return {
+            chunk_id: vec
+            for (ws_id, chunk_id), vec in self.embeddings.items()
+            if ws_id == workspace_id and chunk_id in active_ids
+        }
 
     def get_chunks_for_document(
         self,
@@ -108,8 +172,10 @@ class MemoryStore:
         doc.status = DocumentStatus.DELETING
         doc.updated_at = dt.datetime.now(dt.UTC)
         self.documents_by_hash.pop((workspace_id, doc.content_hash), None)
-        # Immediately revoke chunks from active retrieval queries
-        self.chunks.pop(key, None)
+        # Immediately revoke chunks and embeddings from active retrieval queries
+        chunks_to_remove = self.chunks.pop(key, [])
+        for chunk in chunks_to_remove:
+            self.embeddings.pop((workspace_id, chunk.chunk_id), None)
         return True
 
 

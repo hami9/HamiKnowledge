@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from apps.api.routers import documents, search, workspaces
+from apps.api.routers import documents, query, search, workspaces
 
 
 def create_app() -> FastAPI:
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(workspaces.router)
     app.include_router(documents.router)
     app.include_router(search.router)
+    app.include_router(query.router)
 
     return app
 
