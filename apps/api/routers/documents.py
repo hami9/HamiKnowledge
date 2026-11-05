@@ -179,6 +179,46 @@ def get_document_excerpt(
     )
 
 
+@router.post("/{document_id}/reindex", response_model=DocumentResponse)
+async def reindex_document(
+    workspace_id: UUID,
+    document_id: UUID,
+    file: Annotated[UploadFile, File()],
+    store: StoreDep,
+    service: IngestionDep,
+    source_version: Annotated[str, Form()] = "v2",
+    language: Annotated[str, Form()] = "en",
+) -> DocumentResponse:
+    """Atomically reindex document content; previous version stays valid if reindex fails."""
+    if not store.get_workspace(workspace_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workspace {workspace_id} not found",
+        )
+    existing = store.get_document(workspace_id, document_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found in workspace",
+        )
+
+    content_bytes = await file.read()
+    try:
+        updated = service.reindex_document(
+            workspace_id=workspace_id,
+            document_id=document_id,
+            new_content_bytes=content_bytes,
+            source_version=source_version,
+            language=language,
+        )
+        return _to_doc_response(updated)
+    except (FileValidationError, ScannedDocumentError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_document(
     workspace_id: UUID,

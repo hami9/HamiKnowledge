@@ -23,7 +23,7 @@ requires = ["setuptools>=70.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["evals*", "ingestion*", "retrieval*", "apps*"]
+include = ["evals*", "ingestion*", "retrieval*", "apps*", "db*", "agent*"]
 exclude = ["tests*", "docs*", "config*"]
 
 [project.optional-dependencies]
@@ -52,4 +52,5 @@ ignore_missing_imports = true
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]

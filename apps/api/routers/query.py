@@ -16,6 +16,7 @@ from apps.api.schemas import (
     UsageResponse,
 )
 from db.budget_ledger import BudgetExhaustedError, BudgetLedger
+from db.cache import CacheKey, global_query_cache
 from db.memory_store import MemoryStore
 from retrieval.embeddings import DeterministicEmbeddingAdapter
 from retrieval.fusion import ReciprocalRankFuser
@@ -60,7 +61,26 @@ def ask_question(
             detail=f"Workspace {workspace_id} not found",
         )
 
-    # 2. Reserve conservative budget ceiling before external execution
+    # 2. Check query cache (scoped strictly to workspace and permission version)
+    cache_key = CacheKey.create(
+        workspace_id=workspace_id,
+        permission_version=global_query_cache.get_permission_version(workspace_id),
+        corpus_version="v1",
+        model="deterministic_adapter",
+        retrieval_settings={
+            "variant": payload.variant,
+            "limit": payload.limit,
+            "allowed_docs": sorted(str(d) for d in payload.allowed_document_ids)
+            if payload.allowed_document_ids
+            else [],
+        },
+        query=payload.query,
+    )
+    cached_resp = global_query_cache.get(cache_key)
+    if cached_resp is not None and isinstance(cached_resp, QueryResponse):
+        return cached_resp
+
+    # 3. Reserve conservative budget ceiling before external execution
     estimated_ceiling_usd = 0.001
     try:
         reservation_id = ledger.reserve(workspace_id, estimated_ceiling_usd)
@@ -71,7 +91,7 @@ def ask_question(
         ) from exc
 
     try:
-        # 3. Build tenant filter
+        # 4. Build tenant filter
         allowed_docs = (
             frozenset(payload.allowed_document_ids)
             if payload.allowed_document_ids
@@ -149,7 +169,7 @@ def ask_question(
         for c in gen_result.supporting_passages
     ]
 
-    return QueryResponse(
+    response = QueryResponse(
         workspace_id=workspace_id,
         query=payload.query,
         answer=gen_result.answer,
@@ -165,3 +185,5 @@ def ask_question(
         ),
         latency_ms=round(retrieval_res.timing.total_ms + gen_result.latency_ms, 2),
     )
+    global_query_cache.set(cache_key, response)
+    return response

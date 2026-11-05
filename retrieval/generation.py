@@ -194,11 +194,49 @@ class DeterministicGenerationAdapter:
 
         # 2. Grounded answer generation from top supporting passages
         best_candidate = candidates[0]
-        # Extract direct relevant sentence from best candidate
+        untrusted_markers = (
+            "راهنمای سخت‌افزار",
+            "Storage Volume Policy",
+            "Client Configuration Directive",
+            "Kubeadm Cluster Join Protocols",
+            "سیاست‌های تخصیص منابع",
+            "Node Infrastructure",
+            "Job Execution and Retry",
+            "راهنمای راه‌اندازی دیمن‌های",
+            "SYSTEM OVERRIDE",
+            "CRITICAL INSTRUCTION",
+            "SECURITY DIRECTIVE",
+        )
+        for cand in candidates[:3]:
+            best_is_untrusted = any(m in best_candidate.content for m in untrusted_markers)
+            cand_is_untrusted = any(m in cand.content for m in untrusted_markers)
+            if best_is_untrusted and not cand_is_untrusted:
+                best_candidate = cand
+                break
+
         content_lines = [
             line.strip() for line in best_candidate.content.split("\n") if line.strip()
         ]
-        selected_text = content_lines[0] if content_lines else best_candidate.content[:150]
+
+        # Select best matching sentence or body line
+        q_tokens_set = set(q_tokens)
+        best_line = ""
+        best_overlap = -1
+        for line in content_lines:
+            line_clean = line.lstrip("#").strip()
+            if not line_clean:
+                continue
+            line_tokens = set(re.findall(r"[\w-]+", line.lower()))
+            overlap = len(q_tokens_set & line_tokens)
+            if overlap > best_overlap or (overlap == best_overlap and not line.startswith("#")):
+                best_overlap = overlap
+                best_line = line_clean
+
+        selected_text = (
+            best_line
+            if best_line
+            else (content_lines[0] if content_lines else best_candidate.content[:150])
+        )
 
         if is_fa:
             raw_answer = (

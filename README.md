@@ -2,7 +2,7 @@
 
 Multi-user RAG workspace for English and Persian technical documents, with checkable citations and visible cost.
 
-Status: **A3 — evaluated MVP passed.**
+Status: **A4 — multi-user v1 candidate passed.**
 
 ## Install
 
@@ -42,6 +42,7 @@ Run the CPU feasibility and model selection benchmark on the dev split:
 - [Evidence record A1](docs/evidence/A1.md)
 - [Evidence record A2](docs/evidence/A2.md)
 - [Evidence record A3](docs/evidence/A3.md)
+- [Evidence record A4](docs/evidence/A4.md)
 - [Engineering roadmap](HamiKnowledge-Roadmap.md)
 - [Platform runtime (HamiCloud)](https://github.com/hami9/hamicloud)
 

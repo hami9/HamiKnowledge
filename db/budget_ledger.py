@@ -67,6 +67,17 @@ class BudgetLedger:
                 )
             return self._budgets[workspace_id]
 
+    def set_budget(
+        self,
+        workspace_id: UUID,
+        total_budget_usd: float,
+    ) -> WorkspaceBudget:
+        """Set explicit total budget ceiling for workspace."""
+        with self._lock:
+            budget = self.get_or_create_budget(workspace_id)
+            budget.total_budget_usd = max(0.0, round(total_budget_usd, 8))
+            return budget
+
     def reserve(
         self,
         workspace_id: UUID,

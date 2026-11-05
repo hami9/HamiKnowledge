@@ -6,9 +6,11 @@ Enforces workspace isolation and document lifecycle transitions.
 from __future__ import annotations
 
 import datetime as dt
+import threading
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from db.cache import global_query_cache
 from db.models import Document, DocumentStatus, DocumentVersion, Workspace
 
 if TYPE_CHECKING:
@@ -19,6 +21,7 @@ class MemoryStore:
     """Thread-safe in-memory store enforcing tenant boundaries."""
 
     def __init__(self) -> None:
+        self._lock = threading.RLock()
         self.workspaces: dict[UUID, Workspace] = {}
         # (workspace_id, document_id) -> Document
         self.documents: dict[tuple[UUID, UUID], Document] = {}
@@ -163,20 +166,59 @@ class MemoryStore:
         return active
 
     def delete_document(self, workspace_id: UUID, document_id: UUID) -> bool:
-        """Immediately exclude document from queries by marking as DELETING and clearing chunks."""
-        key = (workspace_id, document_id)
-        doc = self.documents.get(key)
-        if not doc:
-            return False
+        """Immediately exclude document from queries by marking as DELETING and clearing chunks.
 
-        doc.status = DocumentStatus.DELETING
-        doc.updated_at = dt.datetime.now(dt.UTC)
-        self.documents_by_hash.pop((workspace_id, doc.content_hash), None)
-        # Immediately revoke chunks and embeddings from active retrieval queries
-        chunks_to_remove = self.chunks.pop(key, [])
-        for chunk in chunks_to_remove:
-            self.embeddings.pop((workspace_id, chunk.chunk_id), None)
-        return True
+        Invalidates all cached queries and bumps workspace permission version.
+        """
+        with self._lock:
+            key = (workspace_id, document_id)
+            doc = self.documents.get(key)
+            if not doc:
+                return False
+
+            doc.status = DocumentStatus.DELETING
+            doc.updated_at = dt.datetime.now(dt.UTC)
+            self.documents_by_hash.pop((workspace_id, doc.content_hash), None)
+            # Immediately revoke chunks and embeddings from active retrieval queries
+            chunks_to_remove = self.chunks.pop(key, [])
+            for chunk in chunks_to_remove:
+                self.embeddings.pop((workspace_id, chunk.chunk_id), None)
+
+            # Invalidate query cache for this workspace immediately
+            global_query_cache.bump_permission_version(workspace_id)
+            return True
+
+    def atomic_replace_document_index(
+        self,
+        workspace_id: UUID,
+        document_id: UUID,
+        new_doc: Document,
+        new_version: DocumentVersion,
+        new_chunks: list[Chunk],
+        new_embeddings: dict[str, list[float]],
+    ) -> None:
+        """Atomically activate a newly indexed document version.
+
+        In accordance with roadmap invariants:
+        A new index version activates only after every required stage succeeds;
+        the previous valid version stays usable through any failed reindex attempt.
+        """
+        with self._lock:
+            key = (workspace_id, document_id)
+            # Update versions list
+            self.versions.setdefault(key, []).append(new_version)
+            # Save new chunks
+            self.chunks[key] = new_chunks
+            # Save new embeddings
+            for chunk_id, vector in new_embeddings.items():
+                self.embeddings[(workspace_id, chunk_id)] = vector
+            # Update document record
+            new_doc.status = DocumentStatus.READY
+            new_doc.updated_at = dt.datetime.now(dt.UTC)
+            self.documents[key] = new_doc
+            self.documents_by_hash[(workspace_id, new_doc.content_hash)] = new_doc
+            # Invalidate query cache for this workspace
+            global_query_cache.bump_permission_version(workspace_id)
 
 
 # Global singleton instance for memory-backed operation

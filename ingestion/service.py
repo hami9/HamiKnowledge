@@ -172,3 +172,93 @@ class IngestionService:
             doc.error_message = str(exc)
             self.store.save_document(doc)
             raise
+
+    def reindex_document(
+        self,
+        workspace_id: UUID,
+        document_id: UUID,
+        new_content_bytes: bytes,
+        source_version: str = "v2",
+        language: str = "en",
+    ) -> Document:
+        """Atomically reindex an existing document with a new content version.
+
+        In accordance with roadmap invariants:
+        A new index version activates only after every required stage succeeds;
+        the previous valid version stays usable through any failed reindex attempt.
+        """
+        existing_doc = self.store.get_document(workspace_id, document_id)
+        if not existing_doc:
+            raise FileValidationError(
+                f"Document {document_id} not found in workspace {workspace_id}"
+            )
+
+        if len(new_content_bytes) > MAX_FILE_BYTES:
+            raise FileValidationError(
+                f"File size ({len(new_content_bytes)} bytes) exceeds 10 MB limit"
+            )
+        if len(new_content_bytes) == 0:
+            raise FileValidationError("New content is empty (0 bytes)")
+
+        new_hash = hashlib.sha256(new_content_bytes).hexdigest()
+
+        # Stage 1: Parsing
+        try:
+            raw_text = new_content_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                raw_text = new_content_bytes.decode("latin-1")
+            except Exception as exc:
+                raise ScannedDocumentError("Cannot decode text stream during reindex") from exc
+
+        if not raw_text.strip():
+            raise ScannedDocumentError("Extracted document text is empty during reindex")
+
+        new_version_record = DocumentVersion(
+            document_id=document_id,
+            workspace_id=workspace_id,
+            source_version=source_version,
+            content_hash=new_hash,
+            raw_text=raw_text,
+            byte_size=len(new_content_bytes),
+        )
+
+        # Stage 2: Chunking
+        new_chunks = self.chunker.chunk(
+            text=raw_text,
+            document_id=document_id,
+            workspace_id=workspace_id,
+            source_version=source_version,
+            language=language,
+        )
+
+        # Stage 3: Embedding
+        passages = [c.search_text for c in new_chunks]
+        vectors = self.embedder.embed_passages(passages)
+        new_chunk_embeddings = {
+            chunk.chunk_id: vec
+            for chunk, vec in zip(new_chunks, vectors, strict=True)
+        }
+
+        # Stage 4: Atomic Activation (all prior stages succeeded)
+        updated_doc = Document(
+            document_id=document_id,
+            workspace_id=workspace_id,
+            filename=existing_doc.filename,
+            content_type=existing_doc.content_type,
+            content_hash=new_hash,
+            source_version=source_version,
+            status=DocumentStatus.READY,
+            uploader_id=existing_doc.uploader_id,
+            byte_size=len(new_content_bytes),
+        )
+
+        self.store.atomic_replace_document_index(
+            workspace_id=workspace_id,
+            document_id=document_id,
+            new_doc=updated_doc,
+            new_version=new_version_record,
+            new_chunks=new_chunks,
+            new_embeddings=new_chunk_embeddings,
+        )
+        return updated_doc

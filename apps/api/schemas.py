@@ -141,3 +141,28 @@ class AddFundsRequest(BaseModel):
     amount_usd: float = Field(gt=0.0, le=1000.0)
 
 
+class SetBudgetRequest(BaseModel):
+    total_budget_usd: float = Field(ge=0.0, le=10000.0)
+
+
+class AgentToolCallResponse(BaseModel):
+    tool_name: str
+    arguments: dict[str, Any]
+    duration_ms: float
+    success: bool
+    output_summary: str
+
+
+class AgentQueryResponse(BaseModel):
+    workspace_id: UUID
+    query: str
+    answer: str
+    abstained: bool
+    stop_reason: str
+    tool_calls: list[AgentToolCallResponse]
+    supporting_passages: list[SearchResultItem]
+    total_tokens: int
+    estimated_cost_usd: float
+    latency_ms: float
+
+
