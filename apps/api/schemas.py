@@ -126,3 +126,18 @@ class QueryResponse(BaseModel):
     usage: UsageResponse
     latency_ms: float
 
+
+class BudgetResponse(BaseModel):
+    workspace_id: UUID
+    total_budget_usd: float
+    spent_usd: float
+    reserved_usd: float
+    available_usd: float
+    request_count: int
+    total_tokens: int
+
+
+class AddFundsRequest(BaseModel):
+    amount_usd: float = Field(gt=0.0, le=1000.0)
+
+
