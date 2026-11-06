@@ -1,0 +1,70 @@
+{
+  "timestamp": "2026-11-06T10:21:02Z",
+  "split": "test",
+  "purpose": "final",
+  "total_items": 100,
+  "answerable_items": 70,
+  "unanswerable_items": 30,
+  "corpus_document_count": 601,
+  "corpus_chunk_count": 6550,
+  "variants": {
+    "B0": {
+      "variant": "B0",
+      "recall_at_10": 0.3857,
+      "ndcg_at_10": 0.2852,
+      "mrr": 0.2555,
+      "citation_validity": 1.0,
+      "true_abstention_rate": 0.0,
+      "false_abstention_rate": 0.0,
+      "latency_p50_ms": 435.5,
+      "latency_p95_ms": 478.62,
+      "avg_tokens_per_query": 959.7,
+      "avg_cost_per_query_usd": 0.000167,
+      "total_cost_usd": 0.016677
+    },
+    "B1": {
+      "variant": "B1",
+      "recall_at_10": 0.0929,
+      "ndcg_at_10": 0.0651,
+      "mrr": 0.0571,
+      "citation_validity": 1.0,
+      "true_abstention_rate": 0.2333,
+      "false_abstention_rate": 0.1429,
+      "latency_p50_ms": 587.28,
+      "latency_p95_ms": 677.66,
+      "avg_tokens_per_query": 1182.8,
+      "avg_cost_per_query_usd": 0.000194,
+      "total_cost_usd": 0.019443
+    },
+    "B2": {
+      "variant": "B2",
+      "recall_at_10": 0.35,
+      "ndcg_at_10": 0.2338,
+      "mrr": 0.1893,
+      "citation_validity": 1.0,
+      "true_abstention_rate": 0.0,
+      "false_abstention_rate": 0.0,
+      "latency_p50_ms": 1005.97,
+      "latency_p95_ms": 1093.24,
+      "avg_tokens_per_query": 1133.0,
+      "avg_cost_per_query_usd": 0.000194,
+      "total_cost_usd": 0.019406
+    },
+    "B3": {
+      "variant": "B3",
+      "recall_at_10": 0.35,
+      "ndcg_at_10": 0.3028,
+      "mrr": 0.2871,
+      "citation_validity": 1.0,
+      "true_abstention_rate": 0.0,
+      "false_abstention_rate": 0.0,
+      "latency_p50_ms": 1015.25,
+      "latency_p95_ms": 1127.95,
+      "avg_tokens_per_query": 1237.3,
+      "avg_cost_per_query_usd": 0.000215,
+      "total_cost_usd": 0.021535
+    }
+  },
+  "chosen_default": "B2",
+  "justification": "B2 (Hybrid RRF) provides the optimal trade-off between retrieval recall and latency."
+}

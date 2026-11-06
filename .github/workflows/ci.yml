@@ -1,0 +1,69 @@
+name: CI Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-types:
+    name: Lint & Static Typing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[models,dev]"
+
+      - name: Lint with Ruff
+        run: python -m ruff check .
+
+      - name: Type Check with Mypy (Strict)
+        run: python -m mypy evals ingestion retrieval apps db agent tests
+
+  test-and-regression:
+    name: Test & Regression Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[models,dev]"
+
+      - name: Fetch and Verify Evaluation Corpus
+        run: |
+          python -m evals.corpus fetch evals/datasets/corpus/k8s-docs-v1.yaml
+          python -m evals.corpus verify evals/datasets/corpus/k8s-docs-v1.yaml
+
+      - name: Validate Dataset Splits (Strict)
+        run: python -m evals.validate check --strict
+
+      - name: Run Test Suite
+        run: python -m pytest tests/ -v
+
+      - name: Enforce Regression Policy
+        run: python -m evals.regression
+
+      - name: Verify Adversarial Benchmark (40/40)
+        run: python -m evals.adversarial

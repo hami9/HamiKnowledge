@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1.4
+# Finite Ingestion Workload Image for HamiCloud Batch Jobs
+
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md ./
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir ".[models]"
+
+# ------------------------------------------------------------------------------
+# Production Runtime Stage
+# ------------------------------------------------------------------------------
+FROM python:3.12-slim AS runtime
+
+WORKDIR /app
+
+RUN groupadd -g 10001 workeruser && \
+    useradd -u 10000 -g workeruser -s /bin/bash -m workeruser
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY ingestion/ ./ingestion/
+COPY db/ ./db/
+COPY retrieval/ ./retrieval/
+COPY pyproject.toml README.md ./
+
+RUN chown -R workeruser:workeruser /app
+
+USER workeruser
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+ENTRYPOINT ["python", "-m", "ingestion.service"]

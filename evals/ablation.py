@@ -270,7 +270,8 @@ def run_evaluation(
     )
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    report_path = REPORTS_DIR / "ablation-report.json"
+    report_filename = "release-report.json" if split == "test" else "ablation-report.json"
+    report_path = REPORTS_DIR / report_filename
     with report_path.open("w", encoding="utf-8") as f:
         json.dump(asdict(report), f, indent=2)
 

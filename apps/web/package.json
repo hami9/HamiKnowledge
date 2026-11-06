@@ -1,0 +1,12 @@
+{
+  "name": "hamiknowledge-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-user RAG knowledge dashboard with cited answers, operating visibility, and RTL support",
+  "scripts": {
+    "start": "python -m http.server 3000 --directory ."
+  },
+  "keywords": ["rag", "multilingual", "rtl", "citations", "dashboard"],
+  "author": "hami9",
+  "license": "MIT"
+}

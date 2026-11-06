@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 
 from apps.api.routers import agent, budget, documents, query, search, workspaces
 
@@ -32,6 +35,13 @@ def create_app() -> FastAPI:
     @app.get("/readyz", tags=["health"])
     def readyz() -> dict[str, str]:
         return {"status": "ready"}
+
+    @app.get("/", include_in_schema=False)
+    def index() -> Response:
+        index_file = Path(__file__).resolve().parent.parent / "web" / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return HTMLResponse("<h1>HamiKnowledge API</h1>")
 
     # Include routers
     app.include_router(workspaces.router)

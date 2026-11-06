@@ -1,0 +1,67 @@
+# ==============================================================================
+# HamiCloud Native Application Descriptor — HamiKnowledge
+# ==============================================================================
+apiVersion: hamicloud.io/v1alpha1
+kind: Application
+metadata:
+  name: hamiknowledge
+  project: hamiknowledge-production
+  labels:
+    app.kubernetes.io/name: hamiknowledge
+    app.kubernetes.io/part-of: hamicloud-ecosystem
+spec:
+  # ----------------------------------------------------------------------------
+  # 1. HTTP Knowledge API Service
+  # ----------------------------------------------------------------------------
+  services:
+    - name: api
+      type: http
+      replicas: 2
+      image: registry.hamicloud.local/hamiknowledge/api:v1.0.0
+      port: 8000
+      public: true
+      healthcheck:
+        path: /healthz
+        port: 8000
+        initial_delay_seconds: 15
+        period_seconds: 10
+      resources:
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+      env:
+        - name: HAMIKNOWLEDGE_ENV
+          value: "production"
+        - name: EMBEDDING_DEVICE
+          value: "cpu"
+        - name: RERANKER_DEVICE
+          value: "cpu"
+      secrets:
+        - name: database-credentials
+          keys: ["DATABASE_URL"]
+        - name: storage-credentials
+          keys: ["S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]
+
+  # ----------------------------------------------------------------------------
+  # 2. Finite Ingestion Workload (Batch Job)
+  # ----------------------------------------------------------------------------
+  workloads:
+    - name: batch-ingestion
+      type: finite_job
+      image: registry.hamicloud.local/hamiknowledge/worker:v1.0.0
+      restart_policy: OnFailure
+      max_retries: 3
+      active_deadline_seconds: 1800
+      resources:
+        limits:
+          cpu: "4000m"
+          memory: "8Gi"
+        requests:
+          cpu: "1000m"
+          memory: "2Gi"
+      security:
+        service_account: hamiknowledge-ingestion-sa
+        scoped_token_lifetime: 3600
