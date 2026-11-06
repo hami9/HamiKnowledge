@@ -1,5 +1,13 @@
 # HamiKnowledge
 
+[![CI Quality Gate](https://github.com/hami9/HamiKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/hami9/HamiKnowledge/actions)
+[![Release](https://img.shields.io/badge/release-v1.0.0-blue.svg)](https://github.com/hami9/HamiKnowledge/releases/tag/v1.0.0)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
+[![Tests](https://img.shields.io/badge/tests-61%20passed-success.svg)]()
+[![Citation Validity](https://img.shields.io/badge/citation%20validity-100%25-brightgreen.svg)]()
+[![Adversarial Benchmark](https://img.shields.io/badge/adversarial-40%2F40%20(100%25)-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 > Multi-user RAG knowledge platform for technical engineering teams querying English, Persian, and mixed-language technical documentation, with structurally verifiable source citations, calibrated abstention, and per-query budget accounting.
 
 Status: **v1.0.0 — All Milestones (A0–A5) Passed.**  
@@ -72,7 +80,7 @@ flowchart TD
 - **Untrusted Content Barrier:** Retrieved document text is treated purely as data, never instruction. Injected prompt instructions, shell commands, or malicious URLs inside documents are ignored.
 - **Bounded Read-Only Agent:** Permits exactly two safe tools (`search_documents` and `get_document_excerpt`), with a hard ceiling of 3 calls, a 20-second deadline, per-request budget reservations, and loop termination. Zero shell execution, zero arbitrary URLs, zero write tools.
 - **Atomic Budget Ledger:** Thread-safe ledger that atomically reserves conservative cost ceilings before external execution and reconciles actual token usage afterward, preventing overages even under concurrent load.
-- **RTL-Correct UI:** Native right-to-left layout for Persian documentation and mixed Latin technical terms using logical CSS properties.
+- **RTL-Correct UI:** Native right-to-left layout for Persian documentation and mixed Latin technical terms using logical CSS properties (`margin-inline-start`, `padding-inline`, `text-align: start`).
 
 ---
 
@@ -91,6 +99,7 @@ Evaluated against the frozen 100-item test split (70 answerable, 30 unanswerable
 
 - **Default Selection:** **B2 (Hybrid RRF)** is the recommended baseline balance of recall and predictable latency.
 - **High-Precision Option:** **B3 (Hybrid RRF + Reranker)** provides a +0.069 nDCG@10 uplift for applications prioritizing ranking precision over 34 ms of latency.
+- **Full Report:** [`evals/reports/release-report.json`](evals/reports/release-report.json)
 
 ### 2. Adversarial & Lifecycle Benchmark (40 Items)
 
@@ -103,7 +112,50 @@ Evaluated with `python -m evals.adversarial` across 5 threat categories:
 | **Deleted Content** | 8 | 8 | **100.0%** | Immediate exclusion; queries abstain with 0 citations |
 | **ACL Changes** | 6 | 6 | **100.0%** | Server-side boundaries enforced; restricted content excluded |
 | **Tool Misuse** | 6 | 6 | **100.0%** | Shell/network requests blocked; max 3 tool calls enforced |
-| **Total** | **40** | **40** | **100.0%** | Full report: `evals/reports/adversarial-report.json` |
+| **Total** | **40** | **40** | **100.0%** | Full report: [`evals/reports/adversarial-report.json`](evals/reports/adversarial-report.json) |
+
+---
+
+## Interactive Demo Walkthrough (4-Minute Evaluation)
+
+To observe and evaluate all key capabilities in order:
+
+| Time | Demonstration Step | Expected Evidence |
+| :--- | :--- | :--- |
+| **0:00–0:50** | Upload a Markdown document in the Web UI | Observe real-time state machine: `UPLOADED` -> `PARSING` -> `EMBEDDING` -> `INDEXING` -> `READY`. |
+| **0:50–1:40** | Ask an English or Persian question (e.g. *What does the phase of a Pod represent?*) | Grounded answer with clickable `[chk_...]` citation pills opening source excerpts at exact character offsets. |
+| **1:40–2:15** | Ask an unanswerable question (e.g. *How to configure quantum warp drives on Kubernetes?*) | Explicit calibrated abstention badge; zero hallucinated claims or citations. |
+| **2:15–2:50** | Switch workspace or delete a document and re-query | Immediate revocation; document disappears from search candidates, cache is invalidated, and query abstains. |
+| **2:50–3:30** | Compare B0, B1, B2, and B3 variants | Observe latency, token count, and per-query cost breakdown in the ledger metrics bar. |
+| **3:30–4:00** | Enable Bounded Agent mode and submit a query | Observe strictly bounded read-only tool calls (max 3), redacted arguments, execution timings, and stop reasons. |
+
+---
+
+## Models & Cost Accounting
+
+### Pinned Model Revisions
+
+- **Multilingual Embeddings:** `intfloat/multilingual-e5-small` (384 dimensions, MIT License).
+- **Cross-Encoder Reranker:** `cross-encoder/ms-marco-MiniLM-L-6-v2` (Apache-2.0 License).
+- **Generation:** Configurable provider with deterministic offline adapter for reproducible zero-network testing.
+
+### Price Table & Financial Safeguards
+
+- **Prompt Tokens:** $0.15 per 1,000,000 tokens ($0.00000015 / token).
+- **Completion Tokens:** $0.60 per 1,000,000 tokens ($0.00000060 / token).
+- **Reservation Ceiling:** Conservative $0.001 atomically reserved before each external call; reconciled to actual spend afterward.
+- **Concurrent Budget Enforcement:** Stress-tested with 20 parallel threads against a tight budget; zero unreserved calls and zero overdraft.
+
+---
+
+## Architectural Decisions & Tradeoffs
+
+1. **PostgreSQL Native FTS + pgvector vs. Standalone Vector Database:**
+   - *Decision:* Native PostgreSQL full-text search combined with pgvector.
+   - *Rationale:* Eliminates dual-write synchronization bugs, guarantees atomic transactional rollbacks on reindex failure, and enforces tenant authorization directly in SQL predicates (`workspace_id = :ws_id`) rather than relying on application-level filtering.
+2. **Strictly Bounded Read-Only Agent vs. Open-Ended Agentic Frameworks:**
+   - *Decision:* Exactly two read-only tools (`search_documents` and `get_document_excerpt`) with a 3-call hard ceiling and 20s deadline.
+   - *Rationale:* Prevents infinite loops, runaway inference costs, prompt injection exfiltration, and unauthorized writes. Treats retrieved document content as passive text data rather than executable instructions.
 
 ---
 
@@ -130,7 +182,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m evals.corpus fetch evals/datasets/corpus/k8s-docs-v1.yaml
 .\.venv\Scripts\python.exe -m evals.corpus verify evals/datasets/corpus/k8s-docs-v1.yaml
 
-# Run test suite
+# Run test suite (61 tests)
 .\.venv\Scripts\pytest -q
 ```
 
@@ -158,22 +210,22 @@ Starts PostgreSQL 16 (pgvector), Redis 7, MinIO S3, and the HamiKnowledge API on
 Run all automated quality gates:
 
 ```powershell
-# Lint check
+# Lint check (0 errors)
 .\.venv\Scripts\ruff check .
 
-# Strict type check
+# Strict type check across 59 source files (0 errors)
 .\.venv\Scripts\mypy evals ingestion retrieval apps db agent tests
 
 # Full unit and integration test suite (61 tests)
 .\.venv\Scripts\pytest
 
-# Dataset split validation
+# Dataset split validation (Strict)
 .\.venv\Scripts\python -m evals.validate check --strict
 
 # Automated CI regression gate
 .\.venv\Scripts\python -m evals.regression
 
-# Full 40-item adversarial benchmark
+# Full 40-item adversarial benchmark (100% pass)
 .\.venv\Scripts\python -m evals.adversarial
 ```
 

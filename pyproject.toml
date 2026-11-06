@@ -1,7 +1,7 @@
 [project]
 name = "hamiknowledge"
-version = "0.1.0"
-description = "Multi-user RAG workspace with cited answers and measured cost"
+version = "1.0.0"
+description = "Multi-user RAG knowledge platform with hybrid retrieval, cross-encoder reranking, checkable source citations, and per-query cost tracking"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "hami9" }]
