@@ -91,13 +91,15 @@ def fetch(manifest: CorpusManifest) -> Path:
             check=True,
         )
     patterns = ["/LICENSE"] + [f"/{p.strip('/')}/" for r in manifest.include for p in r.paths]
+    _git(["config", "core.eol", "crlf"], root)
+    _git(["config", "core.autocrlf", "true"], root)
     _git(["sparse-checkout", "set", "--no-cone", *patterns], root)
     commit = manifest.source.commit
     try:
         _git(["cat-file", "-e", f"{commit}^{{commit}}"], root)
     except subprocess.CalledProcessError:
         _git(["fetch", "--filter=blob:none", "origin", commit], root)
-    _git(["checkout", "--detach", commit], root)
+    _git(["checkout", "--detach", "--force", commit], root)
     return root
 
 
@@ -139,6 +141,8 @@ def iter_documents(manifest: CorpusManifest, root: Path) -> Iterator[CorpusDocum
                 raise FileNotFoundError(f"include path not found: {rel}")
             for file in sorted(base.rglob("*.md")):
                 data = file.read_bytes()
+                if b"\r\n" not in data and b"\n" in data:
+                    data = data.replace(b"\n", b"\r\n")
                 if len(data) < manifest.min_bytes:
                     continue
                 relpath = file.relative_to(root).as_posix()
@@ -194,7 +198,14 @@ def read_document(manifest_path: Path, doc: CorpusDocument) -> str:
     manifest = load_manifest(manifest_path)
     data = (checkout_root(manifest) / doc.path).read_bytes()
     if hashlib.sha256(data).hexdigest() != doc.sha256:
-        raise RuntimeError(f"hash mismatch for {doc.path}")
+        if b"\r\n" not in data and b"\n" in data:
+            crlf_data = data.replace(b"\n", b"\r\n")
+            if hashlib.sha256(crlf_data).hexdigest() == doc.sha256:
+                data = crlf_data
+            else:
+                raise RuntimeError(f"hash mismatch for {doc.path}")
+        else:
+            raise RuntimeError(f"hash mismatch for {doc.path}")
     return data.decode("utf-8")
 
 
