@@ -116,6 +116,20 @@ Evaluated with `python -m evals.adversarial` across 5 threat categories:
 
 ---
 
+## Visual Tour & Live Verification
+
+### 1. HamiKnowledge RAG Studio & Citation Inspector
+Interactive RTL Persian web console (`http://localhost:8001/`) showcasing active workspace document indexing, real-time citation pills with exact source offset modal, calibrated abstention, and ledger accounting:
+
+![HamiKnowledge Interactive RAG Studio](docs/assets/screenshots/hamiknowledge-rag-studio.png)
+
+### 2. Native HamiCloud Cloud Runtime Integration
+HamiKnowledge deployed directly onto the HamiCloud cloud runtime (`http://localhost:3000/`) with isolated services, releases, encrypted secrets, and background batch ingestion:
+
+![HamiCloud Operator Console](docs/assets/screenshots/hamicloud-operator-console.png)
+
+---
+
 ## Interactive Demo Walkthrough (4-Minute Evaluation)
 
 To observe and evaluate all key capabilities in order:
