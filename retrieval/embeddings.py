@@ -135,7 +135,7 @@ class SentenceTransformerEmbedder:
         self._dimension = dimension
         self._query_prefix = query_prefix
         self._passage_prefix = passage_prefix
-        self._model = None
+        self._model: Any = None
 
     @property
     def model_id(self) -> str:
